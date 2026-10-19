@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitor Analítico COFOG vs. Demografía Diana (España, 2000–2024)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .btn-active { background-color: #0f172a !important; color: #ffffff !important; border-color: #0f172a !important; }
+    .table-sticky th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 10; }
+  </style>
+</head>
+<body class="p-4 md:p-8 max-w-7xl mx-auto">
+
+  <!-- CABECERA INSTITUCIONAL -->
+  <header class="mb-6 border-b border-slate-200 pb-5">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <span class="inline-block px-2.5 py-1 text-xs font-semibold tracking-wider uppercase bg-blue-50 text-blue-800 rounded-md border border-blue-200 mb-2">
+          Evaluación de Políticas Públicas · SEC-2010 / COFOG
+        </span>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+          Gasto Público Real vs. Presión Demográfica en España (2000–2024)
+        </h1>
+        <p class="text-sm text-slate-600 mt-1">
+          Fuentes: Eurostat (<code class="text-xs bg-slate-100 px-1 py-0.5 rounded">gov_10a_exp</code> / IGAE, Sector S13), Deflactor Consumo Público (<code class="text-xs bg-slate-100 px-1 py-0.5 rounded">nama_10_gdp</code> P3_S13, base 2024=100) e INE (ECP a 1 de julio).
+        </p>
+      </div>
+      <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200 self-start">
+        <button id="btnReal" onclick="setPriceMode('real')" class="px-3.5 py-1.5 text-xs font-semibold rounded-md transition btn-active">
+          Euros Constantes 2024 (Real)
+        </button>
+        <button id="btnNom" onclick="setPriceMode('nominal')" class="px-3.5 py-1.5 text-xs font-semibold rounded-md transition text-slate-700 hover:bg-white">
+          Euros Corrientes (Nominal)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- PANEL DE CONTROL INTERACTIVO -->
+  <section class="card p-5 mb-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-end">
+      
+      <!-- Selector de Política COFOG -->
+      <div class="lg:col-span-5">
+        <label for="policySelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+          1. Seleccionar Política Funcional (COFOG) y Cohorte Diana
+        </label>
+        <select id="policySelect" onchange="updateDashboard()" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 shadow-sm focus:border-blue-600 focus:outline-none">
+          <optgroup label="Agregado Macroeconómico">
+            <option value="TOTAL">TOTAL — Gasto Público Total (S13) vs. Población Residente</option>
+          </optgroup>
+          <optgroup label="Protección Social (GF10)">
+            <option value="GF1002" selected>GF10.02 — Pensiones de Vejez vs. Población ≥ 65 años</option>
+            <option value="GF10">GF10 — Protección Social (Total) vs. Población Total</option>
+            <option value="GF1004">GF10.04 — Familia e Infancia vs. Menores (0–17 años)</option>
+            <option value="GF1005">GF10.05 — Desempleo vs. Población Activa Potencial (16–64 años)</option>
+            <option value="GF1001">GF10.01 — Enfermedad e Incapacidad vs. Población Total</option>
+            <option value="GF1007">GF10.07 — Exclusión Social (IMV/Rentas) vs. Población Total</option>
+          </optgroup>
+          <optgroup label="Salud (GF07)">
+            <option value="GF07_ADJ">GF07 (Ajustada) — Salud vs. Población Ponderada Envejecimiento (≥65)</option>
+            <option value="GF07_RAW">GF07 (Per cápita) — Salud vs. Población Total Residente</option>
+            <option value="GF0701">GF07.01 — Productos Farmacéuticos vs. Población Total</option>
+          </optgroup>
+          <optgroup label="Educación (GF09)">
+            <option value="GF09">GF09 — Educación Total vs. Cohorte Global (3–24 años)</option>
+            <option value="GF0901">GF09.01 — Infantil y Primaria vs. Cohorte (0–11 años)</option>
+            <option value="GF0902">GF09.02 — Secundaria y FP vs. Cohorte (12–17 años)</option>
+            <option value="GF0904">GF09.04 — Educación Universitaria/Terciaria vs. Cohorte (18–24 años)</option>
+          </optgroup>
+          <optgroup label="Bienes Públicos Puros e Inversión">
+            <option value="GF01">GF01 — Servicios Públicos Generales vs. Población Total</option>
+            <option value="GF0107">GF01.07 — Intereses de la Deuda Pública vs. Población Total</option>
+            <option value="GF02">GF02 — Defensa vs. Población Total</option>
+            <option value="GF03">GF03 — Orden Público y Seguridad vs. Población Total</option>
+            <option value="GF04">GF04 — Asuntos Económicos e Infraestructuras vs. Población Total</option>
+            <option value="GF05">GF05 — Protección del Medio Ambiente vs. Población Total</option>
+            <option value="GF06">GF06 — Vivienda y Servicios Comunitarios vs. Población Total</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Selector de Marco Temporal -->
+      <div class="lg:col-span-7">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+          2. Marco Temporal de Análisis (Neutralidad Cíclica)
+        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
+          <button onclick="setPeriod(2000, 2024, 'Secular Completo (2000–2024)')" id="p_2000_2024" class="period-btn px-2.5 py-2 text-xs font-semibold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 btn-active">
+            2000–2024<span class="block text-[10px] font-normal opacity-80">Secular</span>
+          </button>
+          <button onclick="setPeriod(2007, 2019, 'Cíclico Homólogo (2007 vs. 2019)')" id="p_2007_2019" class="period-btn px-2.5 py-2 text-xs font-semibold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            2007–2019<span class="block text-[10px] font-normal opacity-80">Pico a Pico</span>
+          </button>
+          <button onclick="setPeriod(2000, 2007, 'Subciclo Expansivo (2000–2007)')" id="p_2000_2007" class="period-btn px-2.5 py-2 text-xs font-semibold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            2000–2007<span class="block text-[10px] font-normal opacity-80">Expansión</span>
+          </button>
+          <button onclick="setPeriod(2008, 2014, 'Crisis y Ajuste Fiscal (2008–2014)')" id="p_2008_2014" class="period-btn px-2.5 py-2 text-xs font-semibold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            2008–2014<span class="block text-[10px] font-normal opacity-80">Crisis/Ajuste</span>
+          </button>
+          <button onclick="setPeriod(2014, 2019, 'Recuperación (2014–2019)')" id="p_2014_2019" class="period-btn px-2.5 py-2 text-xs font-semibold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            2014–2019<span class="block text-[10px] font-normal opacity-80">Recuperación</span>
+          </button>
+          <button onclick="setPeriod(2019, 2024, 'Shocks y Fondos UE (2019–2024)')" id="p_2019_2024" class="period-btn px-2.5 py-2 text-xs font-semibold rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            2019–2024<span class="block text-[10px] font-normal opacity-80">Post-COVID</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- TARJETAS KPI DEL MARCO SELECCIONADO -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="card p-4 border-l-4 border-l-blue-600">
+      <div class="text-xs font-semibold uppercase text-slate-500" id="kpi1Title">Gasto Total (Real 2024)</div>
+      <div class="text-2xl font-bold text-slate-900 mt-1" id="kpi1Val">—</div>
+      <div class="text-xs font-medium mt-1" id="kpi1Sub">—</div>
+    </div>
+    <div class="card p-4 border-l-4 border-l-emerald-600">
+      <div class="text-xs font-semibold uppercase text-slate-500" id="kpi2Title">Población Diana (INE)</div>
+      <div class="text-2xl font-bold text-slate-900 mt-1" id="kpi2Val">—</div>
+      <div class="text-xs font-medium mt-1" id="kpi2Sub">—</div>
+    </div>
+    <div class="card p-4 border-l-4 border-l-indigo-600">
+      <div class="text-xs font-semibold uppercase text-slate-500" id="kpi3Title">Gasto por Usuario Diana</div>
+      <div class="text-2xl font-bold text-slate-900 mt-1" id="kpi3Val">—</div>
+      <div class="text-xs font-medium mt-1" id="kpi3Sub">—</div>
+    </div>
+    <div class="card p-4 border-l-4 border-l-amber-500">
+      <div class="text-xs font-semibold uppercase text-slate-500">Descomposición del Cambio</div>
+      <div class="text-sm font-bold text-slate-900 mt-1.5" id="kpi4Val">—</div>
+      <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden flex">
+        <div id="barDem" class="bg-emerald-500 h-full" style="width: 50%"></div>
+        <div id="barInt" class="bg-indigo-600 h-full" style="width: 50%"></div>
+      </div>
+      <div class="flex justify-between text-[11px] text-slate-600 mt-1">
+        <span id="lblDem">Demografía: —</span>
+        <span id="lblInt">Intensidad: —</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRÁFICOS INTERACTIVOS -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Gráfico 1: Índice Base Inicio = 100 (Gasto vs Demografía vs Gasto Unitario) -->
+    <div class="card p-5">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-800" id="chart1Title">Divergencia Estructural (Índice Base = 100)</h2>
+          <p class="text-xs text-slate-500">Comparativa de crecimiento relativo: Gasto Total, Población Diana y Gasto por Usuario</p>
+        </div>
+      </div>
+      <div class="h-72">
+        <canvas id="indexChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico 2: Evolución Absoluta del Gasto Total y Unitario por Beneficiario -->
+    <div class="card p-5">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-800" id="chart2Title">Gasto Total (M€) y Gasto por Habitante Diana (€)</h2>
+          <p class="text-xs text-slate-500">Barras: Gasto Agregado (eje izq.) · Línea: Dotación por beneficiario potencial (eje der.)</p>
+        </div>
+      </div>
+      <div class="h-72">
+        <canvas id="absChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRÁFICO 3: COMPARATIVA DE SUBCICLOS (TCCA / CAGR) -->
+  <section class="card p-5 mb-6">
+    <div class="mb-3">
+      <h2 class="text-base font-bold text-slate-800">Tasa de Crecimiento Compuesto Anual (TCCA / CAGR) por Subciclos</h2>
+      <p class="text-xs text-slate-500">Comparación del ritmo anualizado de variación del Gasto, de la Población Diana y del Gasto por Usuario en cada etapa histórica</p>
+    </div>
+    <div class="h-64">
+      <canvas id="cagrChart"></canvas>
+    </div>
+  </section>
+
+  <!-- TABLA RESUMEN MULTIMARCO -->
+  <section class="card overflow-hidden">
+    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+      <div>
+        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Matriz Comparativa Completa de Políticas Públicas (Euros Constantes de 2024)</h2>
+        <p class="text-xs text-slate-500">Haz clic sobre cualquier fila para cargar esa política en los gráficos superiores.</p>
+      </div>
+    </div>
+    <div class="overflow-x-auto max-h-96">
+      <table class="w-full text-left border-collapse text-xs table-sticky">
+        <thead>
+          <tr class="border-b border-slate-200 text-slate-600 font-semibold">
+            <th class="py-3 px-3">Política COFOG</th>
+            <th class="py-3 px-3">Cohorte Diana</th>
+            <th class="py-3 px-3 text-right">Gasto Real 2000</th>
+            <th class="py-3 px-3 text-right">Gasto Real 2024</th>
+            <th class="py-3 px-3 text-right">Δ% Real 00–24</th>
+            <th class="py-3 px-3 text-right">Δ% Pob. 00–24</th>
+            <th class="py-3 px-3 text-right">€/Usuario 2000</th>
+            <th class="py-3 px-3 text-right">€/Usuario 2024</th>
+            <th class="py-3 px-3 text-right">Δ% €/Usu 00–24</th>
+            <th class="py-3 px-3 text-right">Δ% €/Usu 07–19</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTableBody" class="divide-y divide-slate-200 text-slate-700"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    // 1. VECTOR DE AÑOS (2000-2024) Y DEFLACTOR OFICIAL (nama_10_gdp P3_S13)
+    const years = [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+    const deflator = [69.070,71.554,74.096,76.696,79.271,82.371,85.833,89.262,93.375,95.134,94.654,93.418,90.976,91.975,92.413,93.761,94.067,94.915,96.353,98.697,100.000,101.958,107.569,109.919,111.596];
+    const DEF_2024 = 111.596;
+
+    // 2. SERIES DEMOGRÁFICAS EXACTAS A 1 DE JULIO (INE ECP 2000-2024)
+    const cohorts = {
+      Pop_Total:   [40554387,40766049,41423520,42196231,42859172,43662613,44360521,45236004,45983169,46367550,46562483,46736257,46749303,46581124,46433050,46384379,46427100,46510461,46715383,47087778,47344852,47346836,47781354,48320520,48821936],
+      Pop_65_plus: [6749831,6878950,6996725,7100063,7185605,7275682,7373282,7451433,7560160,7696306,7846642,8005475,8163277,8326530,8487781,8619236,8739424,8866559,8992652,9125804,9249266,9380015,9568963,9797028,10050225],
+      Pop_16_64:   [27606867,27772348,28301062,28889488,29413283,30040986,30541928,31124212,31569348,31667028,31602711,31514908,31331582,31058250,30858097,30750317,30709480,30699635,30775263,30896835,31161882,31188284,31448358,31767346,32060630],
+      Pop_0_17:    [7455834,7411543,7466727,7575436,7661096,7784289,7895516,7946397,8107960,8238922,8326397,8383431,8402024,8362357,8319503,8305638,8300255,8296215,8280710,8266941,8195941,8108297,8057396,8026846,7986091],
+      Pop_3_24:    [10227684,10025924,9922058,9866750,9794257,9776566,9735174,9749093,9774566,9777903,9758525,9756756,9766524,9766674,9791471,9843916,9902935,9964015,10016164,10072815,10164552,10185081,10248312,10334510,10409512],
+      Pop_0_11:    [4539257,4572295,4667980,4796191,4913455,5055436,5183938,5209546,5367461,5499402,5594366,5651329,5664804,5624136,5568587,5510105,5452490,5380872,5282265,5171787,5036818,4895782,4795826,4725995,4661714],
+      Pop_12_17:   [2916577,2839248,2798747,2779245,2747641,2728853,2711578,2736851,2740499,2739520,2732031,2732102,2737220,2738221,2750916,2795533,2847765,2915343,2998445,3095154,3159123,3212515,3261570,3300851,3324377],
+      Pop_18_24:   [4000684,3862939,3745102,3645505,3554202,3506151,3447926,3681594,3589891,3494511,3391252,3317254,3253388,3198744,3164028,3155966,3157254,3164758,3175234,3192410,3271080,3341890,3427488,3528980,3627152]
+    };
+    // Población sanitaria ponderada por índice de envejecimiento (Share_65_t / Share_65_2000)
+    const share65_2000 = cohorts.Pop_65_plus[0] / cohorts.Pop_Total[0];
+    cohorts.Pop_Health_Adj = years.map((_, i) => Math.round(cohorts.Pop_Total[i] * ((cohorts.Pop_65_plus[i] / cohorts.Pop_Total[i]) / share65_2000)));
+
+    // 3. SERIES DE GASTO NOMINAL COFOG (MIO_EUR, Eurostat gov_10a_exp)
+    const policies = {
+      TOTAL:   { name: "Gasto Público Total (S13)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [253267,269925,289552,307645,334092,360623,391003,422164,459295,493927,490784,482725,500138,463801,467841,476574,475842,482927,503651,526769,586329,615472,642343,685360,725001] },
+      GF10:    { name: "Protección Social (Total GF10)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [82247,87303,94385,100789,108716,116913,126259,138115,154162,175832,182985,184220,185889,186814,185342,184805,188022,192499,202292,216733,258700,256991,259482,280851,297532] },
+      GF1002:  { name: "Pensiones de Vejez (GF10.02)", cohortKey: "Pop_65_plus", cohortName: "Población ≥ 65 años", nom: [40602,42979,45920,48673,52216,56045,60475,65710,71525,77130,81959,86066,90057,93446,95350,97791,101146,104799,110663,118714,124912,131637,140651,155320,165050] },
+      GF1004:  { name: "Familia e Infancia (GF10.04)", cohortKey: "Pop_0_17", cohortName: "Población 0–17 años", nom: [2858,3133,3555,4127,4691,5367,6281,7375,8578,9488,9121,8005,7056,6794,6895,7172,7443,7959,9447,11671,12333,13019,13654,14521,15294] },
+      GF1005:  { name: "Desempleo (GF10.05)", cohortKey: "Pop_16_64", cohortName: "Población 16–64 años", nom: [9014,9747,11124,11798,12826,13604,14687,16401,21985,34614,36348,34946,35674,32605,27665,23210,21114,19752,19357,20087,42131,32098,22548,22765,24077] },
+      GF1001:  { name: "Enfermedad e Incapacidad (GF10.01)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [14010,14865,16060,17158,18636,20229,21671,23297,25277,26476,26471,25942,24486,24395,24791,25607,26785,27980,29395,31379,34611,36835,38867,41222,44019] },
+      GF1007:  { name: "Exclusión Social / IMV (GF10.07)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [1025,1104,1268,1441,1587,1801,2118,2487,2764,3001,3145,3031,2699,2641,2763,3053,3326,3592,4008,4542,6720,8351,9566,10254,10878] },
+      GF07_ADJ:{ name: "Salud Ajustada por Envejecimiento (GF07)", cohortKey: "Pop_Health_Adj", cohortName: "Población Ponderada (≥65 años)", nom: [33324,35370,38354,41512,46914,52462,56708,61270,67347,72993,71145,69312,64721,63338,63499,66484,67713,69298,72146,75917,85545,88541,93327,98630,102942] },
+      GF07_RAW:{ name: "Salud Per Cápita Estricto (GF07)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [33324,35370,38354,41512,46914,52462,56708,61270,67347,72993,71145,69312,64721,63338,63499,66484,67713,69298,72146,75917,85545,88541,93327,98630,102942] },
+      GF0701:  { name: "Productos Farmacéuticos (GF07.01)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [7258,7895,8792,9485,10569,11422,11767,12145,12971,13680,13548,12580,11536,10929,10557,10717,11160,11360,11663,11956,12992,13249,13915,14428,15083] },
+      GF09:    { name: "Educación Total (GF09)", cohortKey: "Pop_3_24", cohortName: "Cohorte Educativa (3–24 años)", nom: [26387,27964,30285,32276,35087,36725,39812,43316,47026,49666,48493,47120,43291,42106,42556,44390,45328,46442,47764,50052,52003,55885,58669,62532,65862] },
+      GF0901:  { name: "Educación Infantil y Primaria (GF09.01)", cohortKey: "Pop_0_11", cohortName: "Cohorte 0–11 años", nom: [9788,10681,11707,12017,13566,14312,15423,16830,18118,19242,18787,18050,16709,16649,16693,17313,17750,18028,18633,19609,20269,21489,22118,23497,24586] },
+      GF0902:  { name: "Educación Secundaria y FP (GF09.02)", cohortKey: "Pop_12_17", cohortName: "Cohorte 12–17 años", nom: [10138,10566,11233,12310,13226,13682,14944,16054,17529,18108,17676,17162,15793,15628,15837,16502,17131,17661,18216,18967,20148,21645,22800,24321,25638] },
+      GF0904:  { name: "Educación Universitaria / Terciaria (GF09.04)", cohortKey: "Pop_18_24", cohortName: "Cohorte 18–24 años", nom: [4559,4781,5084,5209,5670,5516,5813,6350,6949,7357,7248,7082,6543,6170,6218,6385,6436,6533,6652,6894,6972,7646,8078,8295,8796] },
+      GF01:    { name: "Servicios Públicos Generales (GF01)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [40131,42660,43444,44788,44262,47352,50749,53370,57242,60954,60656,66844,73432,74667,73703,70648,68152,65976,67521,67671,69173,73594,79645,86312,92551] },
+      GF0107:  { name: "Intereses de la Deuda Pública (GF01.07)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [20843,21156,20265,19054,17655,16702,16629,18219,18751,19835,21325,27545,33262,38615,39199,35412,32415,30210,29912,29300,27654,28412,31850,35910,39644] },
+      GF02:    { name: "Defensa (GF02)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [7141,7452,7965,8234,9102,9754,10256,10817,11156,10745,10621,10045,9812,9210,8950,9612,9510,9850,10215,10537,10412,11250,12450,13310,14233] },
+      GF03:    { name: "Orden Público y Seguridad (GF03)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [10996,12145,13120,14210,15412,16620,18210,20064,21845,22710,22912,22650,21012,20850,20688,21412,21350,21560,22010,22685,23410,24512,25890,27150,28628] },
+      GF04:    { name: "Asuntos Económicos e Infraestructuras (GF04)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [32128,34850,37620,39850,45610,49850,53410,57643,62150,65410,60120,52410,76512,48950,46873,50412,46850,47910,51240,52761,61850,74510,79410,79850,80908] },
+      GF05:    { name: "Protección del Medio Ambiente (GF05)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [4706,5210,5980,6540,7120,8150,9450,10815,11240,11520,10950,10120,9410,9120,9265,9850,9910,10250,10540,10803,11250,12410,13650,14520,15539] },
+      GF06:    { name: "Vivienda y Servicios Comunitarios (GF06)", cohortKey: "Pop_Total", cohortName: "Población Residente Total", nom: [7552,7850,8450,9010,9120,9450,9650,9876,10450,10850,8950,7120,5610,5120,5166,5410,5010,4950,5080,5190,5410,6120,6850,7210,7613] }
+    };
+
+    // Precalcular series reales (Euros constantes de 2024)
+    Object.keys(policies).forEach(k => {
+      policies[k].real = policies[k].nom.map((v, i) => v * (DEF_2024 / deflator[i]));
+    });
+
+    // Estado de la aplicación
+    let priceMode = 'real'; // 'real' o 'nominal'
+    let startYear = 2000;
+    let endYear = 2024;
+    let periodLabel = 'Secular Completo (2000–2024)';
+
+    let indexChartInstance = null;
+    let absChartInstance = null;
+    let cagrChartInstance = null;
+
+    function fmtNum(n, dec = 0) {
+      return n.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    }
+    function fmtPct(n, dec = 2) {
+      const sign = n > 0 ? '+' : '';
+      return sign + n.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + '%';
+    }
+
+    function setPriceMode(mode) {
+      priceMode = mode;
+      document.getElementById('btnReal').classList.toggle('btn-active', mode === 'real');
+      document.getElementById('btnNom').classList.toggle('btn-active', mode === 'nominal');
+      updateDashboard();
+    }
+
+    function setPeriod(s, e, label) {
+      startYear = s;
+      endYear = e;
+      periodLabel = label;
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('btn-active'));
+      const btn = document.getElementById(`p_${s}_${e}`);
+      if (btn) btn.classList.add('btn-active');
+      updateDashboard();
+    }
+
+    function calcCAGR(valStart, valEnd, numYears) {
+      return (Math.pow(valEnd / valStart, 1 / numYears) - 1) * 100;
+    }
+
+    function updateDashboard() {
+      const polKey = document.getElementById('policySelect').value;
+      const pol = policies[polKey];
+      const popArr = cohorts[pol.cohortKey];
+      const expArr = priceMode === 'real' ? pol.real : pol.nom;
+      const unitArr = expArr.map((v, i) => (v * 1e6) / popArr[i]);
+
+      const i0 = years.indexOf(startYear);
+      const i1 = years.indexOf(endYear);
+      const nYears = endYear - startYear;
+
+      const exp0 = expArr[i0], exp1 = expArr[i1];
+      const pop0 = popArr[i0], pop1 = popArr[i1];
+      const unit0 = unitArr[i0], unit1 = unitArr[i1];
+
+      const dExp = ((exp1 / exp0) - 1) * 100;
+      const dPop = ((pop1 / pop0) - 1) * 100;
+      const dUnit = ((unit1 / unit0) - 1) * 100;
+
+      const cagrExp = calcCAGR(exp0, exp1, nYears);
+      const cagrPop = calcCAGR(pop0, pop1, nYears);
+      const cagrUnit = calcCAGR(unit0, unit1, nYears);
+
+      // Descomposición logarítmica exacta
+      const lnTotal = Math.log(exp1 / exp0);
+      const lnPop = Math.log(pop1 / pop0);
+      const lnUnit = Math.log(unit1 / unit0);
+      const shareDem = (lnPop / lnTotal) * 100;
+      const shareInt = (lnUnit / lnTotal) * 100;
+
+      // Actualizar KPIs
+      const modeTxt = priceMode === 'real' ? 'M€ Constantes 2024' : 'M€ Corrientes';
+      document.getElementById('kpi1Title').textContent = `Gasto (${startYear} → ${endYear}) · ${modeTxt}`;
+      document.getElementById('kpi1Val').textContent = `${fmtNum(exp1, 0)} M€`;
+      document.getElementById('kpi1Sub').innerHTML = `<span class="${dExp >= 0 ? 'text-blue-700' : 'text-rose-600'} font-bold">${fmtPct(dExp)}</span> acum. (${fmtPct(cagrExp)} anual) desde ${fmtNum(exp0, 0)} M€`;
+
+      document.getElementById('kpi2Title').textContent = `${pol.cohortName} (${startYear} → ${endYear})`;
+      document.getElementById('kpi2Val').textContent = `${fmtNum(pop1 / 1e6, 2)} M hab.`;
+      document.getElementById('kpi2Sub').innerHTML = `<span class="text-emerald-700 font-bold">${fmtPct(dPop)}</span> acum. (${fmtPct(cagrPop)} anual) desde ${fmtNum(pop0 / 1e6, 2)} M`;
+
+      document.getElementById('kpi3Title').textContent = `Gasto por Usuario Diana (${endYear})`;
+      document.getElementById('kpi3Val').textContent = `${fmtNum(unit1, 0)} € / usu.`;
+      document.getElementById('kpi3Sub').innerHTML = `<span class="${dUnit >= 0 ? 'text-indigo-700' : 'text-rose-600'} font-bold">${fmtPct(dUnit)}</span> acum. (${fmtPct(cagrUnit)} anual) desde ${fmtNum(unit0, 0)} €`;
+
+      document.getElementById('kpi4Val').textContent = `TCCA: ${fmtPct(cagrPop)} Dem. + ${fmtPct(cagrUnit)} Int.`;
+      const wDem = Math.max(0, Math.min(100, Math.abs(shareDem) / (Math.abs(shareDem) + Math.abs(shareInt)) * 100));
+      document.getElementById('barDem').style.width = `${wDem}%`;
+      document.getElementById('barInt').style.width = `${100 - wDem}%`;
+      document.getElementById('lblDem').textContent = `Demografía: ${fmtPct(shareDem, 1)}`;
+      document.getElementById('lblInt').textContent = `Intensidad: ${fmtPct(shareInt, 1)}`;
+
+      // Filtrar series al rango seleccionado
+      const sliceYears = years.slice(i0, i1 + 1);
+      const sliceExp = expArr.slice(i0, i1 + 1);
+      const slicePop = popArr.slice(i0, i1 + 1);
+      const sliceUnit = unitArr.slice(i0, i1 + 1);
+
+      const idxExp = sliceExp.map(v => (v / sliceExp[0]) * 100);
+      const idxPop = slicePop.map(v => (v / slicePop[0]) * 100);
+      const idxUnit = sliceUnit.map(v => (v / sliceUnit[0]) * 100);
+
+      document.getElementById('chart1Title').textContent = `Divergencia Estructural (Base ${startYear} = 100) · ${pol.name}`;
+      document.getElementById('chart2Title').textContent = `Gasto Total y Dotación por Usuario (${startYear}–${endYear})`;
+
+      // Renderizar Gráfico 1 (Índices)
+      if (indexChartInstance) indexChartInstance.destroy();
+      indexChartInstance = new Chart(document.getElementById('indexChart'), {
+        type: 'line',
+        data: {
+          labels: sliceYears,
+          datasets: [
+            { label: `Gasto Total (${priceMode === 'real' ? 'Real' : 'Nominal'})`, data: idxExp, borderColor: '#2563eb', backgroundColor: '#2563eb', borderWidth: 2.5, tension: 0.25, pointRadius: 2.5 },
+            { label: 'Gasto por Usuario Diana', data: idxUnit, borderColor: '#4f46e5', backgroundColor: '#4f46e5', borderDash: [5, 4], borderWidth: 2.5, tension: 0.25, pointRadius: 2.5 },
+            { label: pol.cohortName, data: idxPop, borderColor: '#10b981', backgroundColor: '#10b981', borderWidth: 2.5, tension: 0.25, pointRadius: 2.5 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+          scales: { y: { title: { display: true, text: `Índice (${startYear} = 100)`, font: { size: 11 } } } }
+        }
+      });
+
+      // Renderizar Gráfico 2 (Absoluto + Unitario)
+      if (absChartInstance) absChartInstance.destroy();
+      absChartInstance = new Chart(document.getElementById('absChart'), {
+        data: {
+          labels: sliceYears,
+          datasets: [
+            { type: 'bar', label: `Gasto Total (${modeTxt})`, data: sliceExp.map(v => Math.round(v)), backgroundColor: 'rgba(37, 99, 235, 0.22)', borderColor: '#2563eb', borderWidth: 1, yAxisID: 'y' },
+            { type: 'line', label: 'Gasto por Usuario (€)', data: sliceUnit.map(v => Math.round(v)), borderColor: '#4f46e5', backgroundColor: '#4f46e5', borderWidth: 2.5, tension: 0.25, pointRadius: 3, yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+          scales: {
+            y: { position: 'left', title: { display: true, text: 'Millones de € (M€)', font: { size: 11 } } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '€ por habitante diana', font: { size: 11 } } }
+          }
+        }
+      });
+
+      // Renderizar Gráfico 3 (Subciclos CAGR)
+      const subPeriods = [
+        { label: '2000–2007 (Expansión)', s: 2000, e: 2007 },
+        { label: '2008–2014 (Crisis/Ajuste)', s: 2008, e: 2014 },
+        { label: '2014–2019 (Recuperación)', s: 2014, e: 2019 },
+        { label: '2019–2024 (Post-COVID)', s: 2019, e: 2024 },
+        { label: '2007–2019 (Pico a Pico)', s: 2007, e: 2019 },
+        { label: '2000–2024 (Secular)', s: 2000, e: 2024 }
+      ];
+      const cagrExpList = [], cagrPopList = [], cagrUnitList = [];
+      subPeriods.forEach(sp => {
+        const a = years.indexOf(sp.s), b = years.indexOf(sp.e), ny = sp.e - sp.s;
+        cagrExpList.push(Number(calcCAGR(expArr[a], expArr[b], ny).toFixed(2)));
+        cagrPopList.push(Number(calcCAGR(popArr[a], popArr[b], ny).toFixed(2)));
+        cagrUnitList.push(Number(calcCAGR(unitArr[a], unitArr[b], ny).toFixed(2)));
+      });
+
+      if (cagrChartInstance) cagrChartInstance.destroy();
+      cagrChartInstance = new Chart(document.getElementById('cagrChart'), {
+        type: 'bar',
+        data: {
+          labels: subPeriods.map(p => p.label),
+          datasets: [
+            { label: 'TCCA Gasto Total (%)', data: cagrExpList, backgroundColor: '#2563eb' },
+            { label: 'TCCA Población Diana (%)', data: cagrPopList, backgroundColor: '#10b981' },
+            { label: 'TCCA Gasto por Usuario (%)', data: cagrUnitList, backgroundColor: '#4f46e5' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+          scales: { y: { title: { display: true, text: 'TCCA / CAGR Anual (%)', font: { size: 11 } } } }
+        }
+      });
+    }
+
+    function buildSummaryTable() {
+      const tbody = document.getElementById('summaryTableBody');
+      tbody.innerHTML = '';
+      Object.keys(policies).forEach(k => {
+        const p = policies[k];
+        const pop = cohorts[p.cohortKey];
+        const r00 = p.real[0], r07 = p.real[7], r19 = p.real[19], r24 = p.real[24];
+        const u00 = (r00 * 1e6) / pop[0], u07 = (r07 * 1e6) / pop[7], u19 = (r19 * 1e6) / pop[19], u24 = (r24 * 1e6) / pop[24];
+        const dReal = ((r24 / r00) - 1) * 100;
+        const dPop = ((pop[24] / pop[0]) - 1) * 100;
+        const dU00_24 = ((u24 / u00) - 1) * 100;
+        const dU07_19 = ((u19 / u07) - 1) * 100;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-blue-50/60 cursor-pointer transition';
+        tr.onclick = () => {
+          document.getElementById('policySelect').value = k;
+          updateDashboard();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-semibold text-slate-900">${p.name}</td>
+          <td class="py-2.5 px-3 text-slate-500">${p.cohortName}</td>
+          <td class="py-2.5 px-3 text-right">${fmtNum(r00, 0)} M€</td>
+          <td class="py-2.5 px-3 text-right font-medium">${fmtNum(r24, 0)} M€</td>
+          <td class="py-2.5 px-3 text-right font-semibold ${dReal >= 0 ? 'text-blue-700' : 'text-rose-600'}">${fmtPct(dReal, 1)}</td>
+          <td class="py-2.5 px-3 text-right text-emerald-700">${fmtPct(dPop, 1)}</td>
+          <td class="py-2.5 px-3 text-right">${fmtNum(u00, 0)} €</td>
+          <td class="py-2.5 px-3 text-right font-semibold">${fmtNum(u24, 0)} €</td>
+          <td class="py-2.5 px-3 text-right font-bold ${dU00_24 >= 0 ? 'text-indigo-700' : 'text-rose-600'}">${fmtPct(dU00_24, 1)}</td>
+          <td class="py-2.5 px-3 text-right font-medium ${dU07_19 >= 0 ? 'text-emerald-700' : 'text-rose-600'}">${fmtPct(dU07_19, 1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildSummaryTable();
+      updateDashboard();
+    });
+  </script>
+</body>
+</html>
