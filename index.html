@@ -6,12 +6,13 @@
   <title>Monitor Analítico COFOG vs. Demografía Diana (España, 2000–2024)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
     .btn-active { background-color: #0f172a !important; color: #ffffff !important; border-color: #0f172a !important; }
     .table-sticky th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 10; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
   </style>
 </head>
 <body class="p-4 md:p-8 max-w-7xl mx-auto">
@@ -20,26 +21,231 @@
   <header class="mb-6 border-b border-slate-200 pb-5">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
-        <span class="inline-block px-2.5 py-1 text-xs font-semibold tracking-wider uppercase bg-blue-50 text-blue-800 rounded-md border border-blue-200 mb-2">
-          Evaluación de Políticas Públicas · SEC-2010 / COFOG
-        </span>
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="inline-block px-2.5 py-1 text-xs font-semibold tracking-wider uppercase bg-blue-50 text-blue-800 rounded-md border border-blue-200">
+            Evaluación de Políticas Públicas · SEC-2010 / COFOG
+          </span>
+          <span class="inline-block px-2.5 py-1 text-xs font-semibold tracking-wider uppercase bg-emerald-50 text-emerald-800 rounded-md border border-emerald-200">
+            Base 2024 = 100
+          </span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
           Gasto Público Real vs. Presión Demográfica en España (2000–2024)
         </h1>
         <p class="text-sm text-slate-600 mt-1">
-          Fuentes: Eurostat (<code class="text-xs bg-slate-100 px-1 py-0.5 rounded">gov_10a_exp</code> / IGAE, Sector S13), Deflactor Consumo Público (<code class="text-xs bg-slate-100 px-1 py-0.5 rounded">nama_10_gdp</code> P3_S13, base 2024=100) e INE (ECP a 1 de julio).
+          Fuentes: Eurostat (<code class="text-xs bg-slate-100 px-1 py-0.5 rounded">gov_10a_exp</code> / IGAE, Sector S13), Deflactor Consumo Público (<code class="text-xs bg-slate-100 px-1 py-0.5 rounded">nama_10_gdp</code> P3_S13) e INE (ECP a 1 de julio).
         </p>
       </div>
-      <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200 self-start">
-        <button id="btnReal" onclick="setPriceMode('real')" class="px-3.5 py-1.5 text-xs font-semibold rounded-md transition btn-active">
-          Euros Constantes 2024 (Real)
+
+      <div class="flex flex-wrap items-center gap-2 self-start">
+        <button onclick="toggleDidacticGuide()" id="btnToggleGuide" class="px-3.5 py-1.5 text-xs font-semibold rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition flex items-center gap-1.5 shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span id="txtToggleGuide">Ocultar Guía Explicativa</span>
         </button>
-        <button id="btnNom" onclick="setPriceMode('nominal')" class="px-3.5 py-1.5 text-xs font-semibold rounded-md transition text-slate-700 hover:bg-white">
-          Euros Corrientes (Nominal)
-        </button>
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <button id="btnReal" onclick="setPriceMode('real')" class="px-3 py-1.5 text-xs font-semibold rounded-md transition btn-active">
+            Euros Constantes 2024 (Real)
+          </button>
+          <button id="btnNom" onclick="setPriceMode('nominal')" class="px-3 py-1.5 text-xs font-semibold rounded-md transition text-slate-700 hover:bg-white">
+            Euros Corrientes (Nominal)
+          </button>
+        </div>
       </div>
     </div>
   </header>
+
+  <!-- SECCIÓN DIDÁCTICA Y CONTEXTUALIZACIÓN METODOLÓGICA (PARA DUMMIES) -->
+  <section id="didacticGuide" class="mb-8 space-y-6">
+
+    <!-- Tarjeta 1: Objetivo y Trampas Estadísticas -->
+    <div class="card p-6 bg-gradient-to-br from-white to-blue-50/40 border-blue-200/80">
+      <div class="flex items-center gap-2.5 mb-3">
+        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
+        <h2 class="text-lg font-bold text-slate-900">¿Cuál es el objetivo de este análisis?</h2>
+      </div>
+      <p class="text-sm text-slate-700 leading-relaxed mb-4">
+        En las noticias y los debates políticos solemos escuchar afirmaciones contradictorias sobre los mismos servicios:<br>
+        <span class="italic font-medium text-slate-800">«El gasto en sanidad y educación ha alcanzado máximos históricos de inversión»</span> frente a <span class="italic font-medium text-slate-800">«La sanidad pública está recortada y abandonada respecto al pasado»</span>.
+      </p>
+      <p class="text-sm text-slate-700 leading-relaxed mb-4">
+        ¿Quién tiene razón? El problema es que esas afirmaciones suelen caer en <strong>dos trampas estadísticas clásicas</strong>:
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2 text-rose-600 font-semibold text-xs uppercase tracking-wider mb-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            Trampa 1: La ilusión monetaria (Inflación)
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Si un menú del día costaba <strong>6 €</strong> en el año 2000 y hoy cuesta <strong>13 €</strong>, pagar 13 € hoy no significa comer mejor ni más cantidad; simplemente significa que el dinero vale menos. Comparar euros de 2000 con euros de 2024 sin ajustar precios es engañoso.
+          </p>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2 text-amber-600 font-semibold text-xs uppercase tracking-wider mb-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            Trampa 2: El tamaño del colectivo (Demografía)
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Si una familia se gasta hoy <strong>400 €</strong> al mes en comida frente a los <strong>300 €</strong> de hace diez años, parece que gasta más. Pero si en 2014 eran 2 personas en casa y hoy son 4, en realidad cada miembro come con menos presupuesto (<strong>100 €/persona</strong> hoy frente a <strong>150 €/persona</strong> antes).
+          </p>
+        </div>
+      </div>
+
+      <div class="p-3.5 bg-blue-100/70 rounded-lg text-xs md:text-sm text-blue-900 font-medium">
+        🎯 <strong>El objetivo de esta herramienta es levantar esas dos trampas para ver la realidad:</strong> evaluar con datos oficiales si el Estado del bienestar gasta hoy <strong>más o menos recursos reales por cada usuario real</strong>, y determinar cuánto del cambio se debe a la <em>inercia demográfica</em> (más o menos personas) y cuánto a una <em>mayor intensidad protectora</em> (más recursos dedicados a cada ciudadano).
+      </div>
+    </div>
+
+    <!-- Tarjeta 2, 3 y 4 en cuadrícula: Fuentes, Emparejamiento y Fórmula -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      
+      <!-- Fuentes Oficiales -->
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2.5">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold">2</span>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Fuentes Oficiales</h3>
+        </div>
+        <ul class="space-y-3 text-xs text-slate-600">
+          <li>
+            <strong class="text-slate-800">1. Eurostat / IGAE (Gasto COFOG):</strong> Base de datos oficial <code class="text-[11px] bg-slate-100 px-1 py-0.5 rounded">gov_10a_exp</code> de todas las Administraciones Públicas españolas (Sector S13) desglosadas por funciones (Salud, Educación, Pensiones, etc.).
+          </li>
+          <li>
+            <strong class="text-slate-800">2. INE (Población por edad simple):</strong> Microdatos de la <em>Estadística Continua de Población</em> a <strong>1 de julio</strong> de cada año (punto medio del año contable), desde los 0 hasta más de 100 años.
+          </li>
+          <li>
+            <strong class="text-slate-800">3. Eurostat (Deflactor Consumo Público):</strong> Serie implícita oficial <code class="text-[11px] bg-slate-100 px-1 py-0.5 rounded">P3_S13</code> (base 2024 = 100). No es el IPC general, sino el coste real de compras, salarios y servicios del sector público.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Emparejamiento Diana -->
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2.5">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold">3</span>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Población Diana</h3>
+        </div>
+        <p class="text-xs text-slate-600 mb-2.5">
+          No se divide entre toda la población de forma genérica, sino entre quienes pueden usar cada servicio:
+        </p>
+        <div class="space-y-1.5 text-xs text-slate-700">
+          <div class="flex justify-between py-1 border-b border-slate-100"><span>Pensiones vejez:</span><strong class="text-slate-900">≥ 65 años</strong></div>
+          <div class="flex justify-between py-1 border-b border-slate-100"><span>Educación Primaria:</span><strong class="text-slate-900">0–11 años</strong></div>
+          <div class="flex justify-between py-1 border-b border-slate-100"><span>Secundaria y FP:</span><strong class="text-slate-900">12–17 años</strong></div>
+          <div class="flex justify-between py-1 border-b border-slate-100"><span>Universidad:</span><strong class="text-slate-900">18–24 años</strong></div>
+          <div class="flex justify-between py-1 border-b border-slate-100"><span>Familia e infancia:</span><strong class="text-slate-900">0–17 años</strong></div>
+          <div class="flex justify-between py-1 border-b border-slate-100"><span>Desempleo:</span><strong class="text-slate-900">16–64 años (activos)</strong></div>
+          <div class="flex justify-between py-1"><span>Bienes indivisibles:</span><strong class="text-slate-900">Población total</strong></div>
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-slate-200 text-[11px] text-slate-500 italic">
+          💡 <em>Sanidad ajustada:</em> pondera la población por el sobreenvejecimiento (los mayores de 80 años se han duplicado de 1,5 a 3 millones).
+        </div>
+      </div>
+
+      <!-- Fórmula y Descomposición -->
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2.5">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold">4</span>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">La Fórmula Matemática</h3>
+        </div>
+        <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-[11px] font-mono text-slate-800 text-center mb-2.5">
+          Gasto Real = Usuarios × Gasto/Usuario
+        </div>
+        <p class="text-xs text-slate-600 mb-2">
+          Mediante cálculo logarítmico exacto, separamos de cada 100 € de aumento qué parte es <strong>Demografía</strong> y qué parte es <strong>Intensidad</strong>:
+        </p>
+        <div class="space-y-2 text-xs">
+          <div class="p-2 bg-emerald-50 rounded border border-emerald-200 text-emerald-900">
+            <strong>Ejemplo Primaria:</strong> Como nacen menos niños, el <strong>94%</strong> del incremento presupuestario se convirtió en más dinero real por cada alumno.
+          </div>
+          <div class="p-2 bg-indigo-50 rounded border border-indigo-200 text-indigo-900">
+            <strong>Ejemplo Sanidad:</strong> El <strong>61,4%</strong> del dinero real nuevo se lo comió el envejecimiento de la pirámide, dejando solo un 38,6% de mejora neta.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tarjeta 5 y 6: Marcos Temporales y Grandes Conclusiones -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      
+      <!-- Marcos Temporales -->
+      <div class="lg:col-span-5 card p-5">
+        <div class="flex items-center gap-2 mb-2.5">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold">5</span>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Marcos Temporales Sin Sesgo</h3>
+        </div>
+        <p class="text-xs text-slate-600 mb-3">
+          Para evitar el <em>cherry picking</em> (elegir años convenientes para favorecer un relato político), la herramienta ofrece 3 ópticas:
+        </p>
+        <div class="space-y-2 text-xs text-slate-700">
+          <div class="p-2 rounded bg-slate-50 border border-slate-200">
+            <strong class="text-slate-900">1. Marco Secular (2000–2024):</strong> La foto completa de un cuarto de siglo de España en el euro.
+          </div>
+          <div class="p-2 rounded bg-slate-50 border border-slate-200">
+            <strong class="text-slate-900">2. Cíclico Homólogo (2007 vs. 2019):</strong> La comparación más limpia: pico previo a la crisis de 2008 frente a pico previo a la pandemia.
+          </div>
+          <div class="p-2 rounded bg-slate-50 border border-slate-200">
+            <strong class="text-slate-900">3. Cuatro Subciclos Históricos:</strong> Burbuja (2000-07), Ajuste fiscal (2008-14), Recuperación (2014-19) y Shocks COVID/Fondos UE (2019-24).
+          </div>
+        </div>
+      </div>
+
+      <!-- Conclusiones Clave -->
+      <div class="lg:col-span-7 card p-5 bg-gradient-to-br from-white to-slate-50">
+        <div class="flex items-center gap-2 mb-2.5">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold">6</span>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Principales Conclusiones Empíricas</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+          <div class="p-2.5 bg-white rounded border border-slate-200 shadow-sm">
+            <span class="text-blue-700 font-bold block mb-1">👴 1. El motor hegemónico: Pensiones</span>
+            Absorbe el <strong>31,5% de toda la expansión real del Estado</strong>. Y no solo por haber más jubilados: el <strong>57%</strong> de la subida obedece a pensiones medias reales más altas.
+          </div>
+          <div class="p-2.5 bg-white rounded border border-slate-200 shadow-sm">
+            <span class="text-emerald-700 font-bold block mb-1">🏥 2. La paradoja sanitaria</span>
+            En 2019, al descontar la mayor longevidad, el gasto real por paciente ajustado era <strong>un -8,5% menor que en 2007</strong>. Solo se recuperó tras el shock post-COVID.
+          </div>
+          <div class="p-2.5 bg-white rounded border border-slate-200 shadow-sm">
+            <span class="text-rose-600 font-bold block mb-1">🏠 3. La gran rezagada: Vivienda</span>
+            El presupuesto real en vivienda y urbanismo cayó un <strong>-48% por habitante</strong> desde 2000 y nunca volvió a los niveles previos al colapso de 2008.
+          </div>
+          <div class="p-2.5 bg-white rounded border border-slate-200 shadow-sm">
+            <span class="text-indigo-700 font-bold block mb-1">👶 4. Ganadoras en intensidad social</span>
+            Las políticas de <strong>Familia e Infancia</strong> triplican su dotación por menor (+209%), y <strong>Exclusión Social</strong> se multiplica por 6 con el Ingreso Mínimo Vital.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tarjeta 7: Cómo leer los resultados en 3 pasos -->
+    <div class="card p-5 bg-indigo-900 text-white">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-white text-indigo-900 text-xs font-bold">7</span>
+          <h3 class="text-sm font-bold uppercase tracking-wide">Cómo Interpretar la Herramienta en 3 Pasos Rápidos</h3>
+        </div>
+        <span class="text-xs text-indigo-200 bg-indigo-800/80 px-2.5 py-1 rounded">Regla de Oro: Trabajar siempre en Euros Constantes de 2024</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-indigo-100">
+        <div class="bg-indigo-950/60 p-3 rounded-lg border border-indigo-800">
+          <div class="font-bold text-white mb-1">Paso 1. Modo de Precios</div>
+          Mantén activado el botón <em>«Euros Constantes 2024 (Real)»</em> para ver los datos limpios de inflación. Si pulsas <em>«Nominal»</em> verás la cifra abultada que suele publicarse en prensa.
+        </div>
+        <div class="bg-indigo-950/60 p-3 rounded-lg border border-indigo-800">
+          <div class="font-bold text-white mb-1">Paso 2. Cruce en Gráfico 1 (Base 100)</div>
+          Compara la línea azul (Gasto Real) con la verde (Población). Si la azul se separa hacia arriba, la política está ganando <strong>intensidad protectora real</strong> por persona.
+        </div>
+        <div class="bg-indigo-950/60 p-3 rounded-lg border border-indigo-800">
+          <div class="font-bold text-white mb-1">Paso 3. Tarjeta de Descomposición</div>
+          Mira la 4.ª tarjeta superior: la barra bicolor te indica de forma inmediata qué porcentaje del cambio se debe a la <strong>Demografía (verde)</strong> y cuánto a la <strong>Intensidad (morada)</strong>.
+        </div>
+      </div>
+    </div>
+
+  </section>
 
   <!-- PANEL DE CONTROL INTERACTIVO -->
   <section class="card p-5 mb-6">
@@ -216,6 +422,19 @@
   </section>
 
   <script>
+    // 0. CONTROL DE VISIBILIDAD DE LA GUÍA DIDÁCTICA
+    function toggleDidacticGuide() {
+      const guide = document.getElementById('didacticGuide');
+      const txt = document.getElementById('txtToggleGuide');
+      if (guide.style.display === 'none') {
+        guide.style.display = 'block';
+        txt.textContent = 'Ocultar Guía Explicativa';
+      } else {
+        guide.style.display = 'none';
+        txt.textContent = 'Mostrar Guía Explicativa';
+      }
+    }
+
     // 1. VECTOR DE AÑOS (2000-2024) Y DEFLACTOR OFICIAL (nama_10_gdp P3_S13)
     const years = [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
     const deflator = [69.070,71.554,74.096,76.696,79.271,82.371,85.833,89.262,93.375,95.134,94.654,93.418,90.976,91.975,92.413,93.761,94.067,94.915,96.353,98.697,100.000,101.958,107.569,109.919,111.596];
